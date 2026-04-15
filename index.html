@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>حذف الحساب - تطبيق القلعة</title>
-    <!-- reCAPTCHA v3 -->
-    <script src="https://www.google.com/recaptcha/api.js?render=YOUR_SITE_KEY"></script>
+    <!-- ✅ استخدام reCAPTCHA v3 العادية (أكثر استقراراً) -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LegMbksAAAAADx83sDAnPSLRKV4CQVSdhIBq-ak"></script>
     <style>
         * {
             margin: 0;
@@ -188,17 +188,6 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-
-        .rate-limit-warning {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 16px;
-            font-size: 12px;
-            color: #991b1b;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -216,12 +205,10 @@
 
             <div class="info-box">
                 <span>🔐🛡️</span>
-                <span>نظام الحماية: reCAPTCHA + تحديد عدد المحاولات (5 محاولات لكل 15 دقيقة)</span>
+                <span>نظام الحماية: reCAPTCHA v3 + تحديد عدد المحاولات (5 محاولات لكل 15 دقيقة)</span>
             </div>
 
             <form id="deleteForm">
-               
-
                 <div class="form-group">
                     <label>رقم الهاتف <span class="required">*</span></label>
                     <input type="tel" id="phone" placeholder="9647888705002" dir="ltr" required>
@@ -238,8 +225,6 @@
                         <span>أؤكد رغبتي بحذف حسابي وكل بياناتي بشكل <strong>نهائي</strong> <span class="required">*</span></span>
                     </label>
                 </div>
-
-                <input type="hidden" id="recaptchaToken" name="recaptcha_token">
                 
                 <button type="submit" class="btn-submit" id="submitBtn">
                     حذف الحساب نهائياً
@@ -258,10 +243,9 @@
 </div>
 
 <script>
-    // 🔥 تكوين Supabase - استبدل هذه القيم
     const SUPABASE_URL = 'https://ucilwjdhxretkpbsbzym.supabase.co';
     const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/delete-account-web`;
-    const RECAPTCHA_SITE_KEY = '6LegMbksAAAAADx83sDAnPSLRKV4CQVSdhIBq-ak'; // ⚠️ استبدل بمفتاح موقعك
+    const RECAPTCHA_SITE_KEY = '6LegMbksAAAAADx83sDAnPSLRKV4CQVSdhIBq-ak';
 
     const form = document.getElementById('deleteForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -270,18 +254,31 @@
     function showResult(message, type) {
         resultDiv.textContent = message;
         resultDiv.className = `result ${type}`;
+        resultDiv.style.display = 'block';
         setTimeout(() => {
             resultDiv.style.display = 'none';
         }, 8000);
     }
 
-    // الحصول على token من reCAPTCHA قبل كل إرسال
+    // ✅ استخدام reCAPTCHA v3 العادية
     async function getRecaptchaToken() {
         return new Promise((resolve) => {
+            if (typeof grecaptcha === 'undefined') {
+                console.error('reCAPTCHA not loaded');
+                resolve(null);
+                return;
+            }
+            
             grecaptcha.ready(() => {
                 grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'delete_account' })
-                    .then(token => resolve(token))
-                    .catch(() => resolve(null));
+                    .then(token => {
+                        console.log('✅ reCAPTCHA token obtained successfully');
+                        resolve(token);
+                    })
+                    .catch((err) => {
+                        console.error('❌ reCAPTCHA execute error:', err);
+                        resolve(null);
+                    });
             });
         });
     }
@@ -289,12 +286,11 @@
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        
         const phone = document.getElementById('phone').value.trim();
         const password = document.getElementById('password').value;
         const confirmed = document.getElementById('confirmCheckbox').checked;
 
-        if ( !phone || !password) {
+        if (!phone || !password) {
             showResult('❌ الرجاء تعبئة جميع الحقول المطلوبة', 'error');
             return;
         }
@@ -304,13 +300,11 @@
             return;
         }
 
-        // تعطيل الزر وعرض حالة التحميل
         submitBtn.disabled = true;
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<span class="spinner"></span> جاري التحقق والمعالجة...';
 
         try {
-            // الحصول على token من reCAPTCHA
             const recaptchaToken = await getRecaptchaToken();
             
             if (!recaptchaToken) {
@@ -320,14 +314,12 @@
                 return;
             }
 
-            // إرسال الطلب إلى الـ Edge Function
             const response = await fetch(EDGE_FUNCTION_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                   
                     phone: phone,
                     password: password,
                     recaptcha_token: recaptchaToken
@@ -337,21 +329,21 @@
             const data = await response.json();
 
             if (response.status === 429) {
-                // Rate limit exceeded
                 showResult('⚠️ ' + (data.message || 'محاولات كثيرة. يرجى المحاولة بعد 30 دقيقة'), 'error');
             } else if (response.ok && data.success) {
                 showResult('✅ ' + (data.message || 'تم حذف حسابك بنجاح!'), 'success');
                 form.reset();
-                // مسح أي بيانات جلسة
                 localStorage.clear();
-                // إعادة توجيه اختياري بعد 3 ثوان
-                // setTimeout(() => { window.location.href = '/'; }, 3000);
+                // إعادة توجيه بعد 3 ثوان
+                setTimeout(() => { 
+                    window.location.href = '/';
+                }, 3000);
             } else {
                 let errorMessage = data.message || 'حدث خطأ أثناء حذف الحساب';
                 if (errorMessage.includes('كلمة المرور')) {
                     errorMessage = '❌ كلمة المرور غير صحيحة';
-                } else if (errorMessage.includes('المستخدم')) {
-                    errorMessage = '❌ لا يوجد حساب بهذه البيانات';
+                } else if (errorMessage.includes('المستخدم') || errorMessage.includes('رقم')) {
+                    errorMessage = '❌ لا يوجد حساب بهذا الرقم';
                 }
                 showResult(errorMessage, 'error');
             }
@@ -362,6 +354,18 @@
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         }
+    });
+
+    // التحقق من تحميل reCAPTCHA عند بدء الصفحة
+    window.addEventListener('load', () => {
+        console.log('Page loaded, checking reCAPTCHA...');
+        setTimeout(() => {
+            if (typeof grecaptcha !== 'undefined') {
+                console.log('✅ reCAPTCHA is ready');
+            } else {
+                console.error('❌ reCAPTCHA failed to load');
+            }
+        }, 1000);
     });
 </script>
 </body>
