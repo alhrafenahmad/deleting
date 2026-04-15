@@ -251,7 +251,7 @@
             <div class="footer">
                 © 2025 تطبيق القلعة - جميع الحقوق محفوظة
                 <br>
-                <small>للمساعدة: <a href="mailto:support@alqalaa.com" style="color: #dc2626;">support@alqalaa.com</a> | <a href="tel:+9647888705002" style="color: #dc2626;">+9647888705002</a></small>
+                <small>للمساعدة:  <a href="tel:+9647888705002" style="color: #dc2626;">+9647888705002</a></small>
             </div>
         </div>
     </div>
@@ -260,8 +260,8 @@
 <script>
     // 🔥 تكوين Supabase - استبدل هذه القيم
     const SUPABASE_URL = 'https://ucilwjdhxretkpbsbzym.supabase.co';
-    const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/delete-account`;
-    const RECAPTCHA_SITE_KEY = 'YOUR_RECAPTCHA_SITE_KEY'; // ⚠️ استبدل بمفتاح موقعك
+    const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/delete-account-web`;
+    const RECAPTCHA_SITE_KEY = '6LegMbksAAAAADx83sDAnPSLRKV4CQVSdhIBq-ak'; // ⚠️ استبدل بمفتاح موقعك
 
     const form = document.getElementById('deleteForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -294,7 +294,7 @@
         const password = document.getElementById('password').value;
         const confirmed = document.getElementById('confirmCheckbox').checked;
 
-        if (!email || !phone || !password) {
+        if ( !phone || !password) {
             showResult('❌ الرجاء تعبئة جميع الحقول المطلوبة', 'error');
             return;
         }
@@ -327,7 +327,7 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    email: email,
+                   
                     phone: phone,
                     password: password,
                     recaptcha_token: recaptchaToken
